@@ -1,0 +1,445 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SQL Quest — Minimal Single‑File Game</title>
+  <style>
+    :root{
+      --bg:#0b0d10; --panel:#11161b; --muted:#6b7280; --text:#e5e7eb; --accent:#22d3ee; --good:#10b981; --bad:#ef4444; --warn:#f59e0b;
+      --card:#0f1318; --border:#1f2937; --chip:#161d24;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b0d10,#0c0f13 30%,#0a0d11);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px 16px 96px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .title{display:flex;gap:10px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:radial-gradient(circle at 30% 30%,#49e6ff,transparent 60%),radial-gradient(circle at 70% 60%,#7c3aed,transparent 55%),#0b0f14; box-shadow:0 0 0 1px #1e293b,0 10px 30px #0b0f14}
+    h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
+    .pill{font-size:12px;color:#9ca3af;border:1px solid var(--border);padding:4px 8px;border-radius:999px;background:var(--chip)}
+    .bar{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+    .progress{height:8px;border-radius:999px;background:#0c1218;border:1px solid var(--border);overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#06b6d4);width:0}/* Layout */
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+@media (max-width:900px){.grid{grid-template-columns:1fr;}}
+
+/* Panels */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.25) inset}
+.panel h2{margin:0 0 10px;font-size:14px;color:#cbd5e1;font-weight:700;letter-spacing:.3px}
+.sub{color:var(--muted);font-size:13px;margin:6px 0 12px}
+
+/* Scene cards */
+.scene{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px;position:relative;min-height:96px}
+.card h3{margin:0 0 4px;font-size:14px}
+.tag{display:inline-flex;gap:6px;align-items:center;background:var(--chip);border:1px solid var(--border);padding:3px 8px;border-radius:999px;font-size:12px;color:#9ca3af}
+.glow{outline:2px solid var(--good); box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+
+/* Builder */
+.builder{display:flex;flex-direction:column;gap:10px}
+.blocks,.chosen{display:flex;flex-wrap:wrap;gap:8px}
+.block{border:1px dashed #334155;background:#0b1116;color:#cbd5e1;padding:8px 10px;border-radius:12px;font-size:13px;cursor:pointer;user-select:none}
+.block[data-kind="keyword"]{border-style:solid;background:#0e151c}
+.block.small{font-size:12px;padding:6px 8px}
+.chosen{min-height:52px;background:#0b1116;border:1px dashed #334155;border-radius:12px;padding:8px}
+
+.row{display:flex;gap:8px; align-items:center;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--border);background:#0e1620;color:var(--text);padding:10px 14px;border-radius:12px;font-size:14px;cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#1e293b,#0f172a);border-color:#334155}
+.btn.good{background:linear-gradient(180deg,#065f46,#064e3b);border-color:#0f766e}
+.btn.bad{background:linear-gradient(180deg,#7f1d1d,#641515);border-color:#7f1d1d}
+
+.sql{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#0b1116;border:1px solid #243041;border-radius:12px;padding:10px;font-size:13px;white-space:pre-wrap}
+
+.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#0b1116;border:1px solid var(--border);padding:10px 14px;color:#cbd5e1;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s}
+.toast.show{opacity:1}
+
+.footer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(10,13,17,.92),rgba(10,13,17,.6));backdrop-filter:blur(8px);border-top:1px solid var(--border)}
+.footerin{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+
+.star{font-size:16px}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>SQL Quest</h1>
+          <div class="pill" id="story">Learn SQL by playing real‑world scenes · no typing needed</div>
+        </div>
+      </div>
+      <div class="bar" style="min-width:280px">
+        <div class="progress" aria-label="progress"><i id="progressBar"></i></div>
+        <span class="pill" id="levelPill">Level 1/5</span>
+        <span class="pill" id="xpPill">XP 0</span>
+      </div>
+    </header><div class="grid">
+  <section class="panel">
+    <h2 id="sceneTitle">Scene</h2>
+    <div class="sub" id="sceneSubtitle"></div>
+    <div id="scene" class="scene" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Build the query</h2>
+    <div class="sub" id="hint">Drag blocks or tap to assemble the SQL. Try the real‑world icons instead of typing.</div>
+
+    <div class="builder">
+      <div class="blocks" id="palette"></div>
+      <div class="chosen" id="chosen" aria-label="query blocks"></div>
+
+      <div class="row">
+        <button class="btn primary" id="runBtn">Run</button>
+        <button class="btn" id="resetBtn" aria-label="reset">Reset</button>
+        <span class="pill" id="feedback"> </span>
+      </div>
+
+      <div class="sql" id="sqlBox" role="region" aria-label="SQL preview">—</div>
+    </div>
+  </section>
+</div>
+
+  </div>  <div class="footer">
+    <div class="footerin">
+      <div>
+        <span class="pill">Tip: You can complete every level with taps and drags only.</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="prevBtn">◀ Prev</button>
+        <button class="btn good" id="nextBtn">Next ▶</button>
+      </div>
+    </div>
+  </div>  <div class="toast" id="toast">Nice!</div><script>
+/***** Data & Levels *****/
+const levels = [
+  {
+    id: 1,
+    title: "Café Detective — Find coffee drinkers",
+    subtitle: "Tap blocks to filter customers who ordered coffee.",
+    story: "You're a barista. Who ordered coffee?",
+    palette: [
+      {label:"SELECT", kind:"keyword"},
+      {label:"name", kind:"column", icon:"👤"},
+      {label:"FROM", kind:"keyword"},
+      {label:"customers", kind:"table", icon:"🧑‍🤝‍🧑"},
+      {label:"WHERE", kind:"keyword"},
+      {label:"drink = 'coffee'", kind:"condition", icon:"☕"}
+    ],
+    dataset: {
+      table: 'customers',
+      rows: [
+        {name: 'Asha', drink: 'coffee'},
+        {name: 'Ravi', drink: 'tea'},
+        {name: 'Meera', drink: 'coffee'},
+        {name: 'Karan', drink: 'juice'},
+        {name: 'Sara', drink: 'coffee'},
+        {name: 'Arjun', drink: 'tea'},
+      ]
+    },
+    validator: (sql) => /SELECT\s+name\s+FROM\s+customers\s+WHERE\s+drink\s*=\s*'coffee'\s*;?$/i.test(sql.trim()),
+    effect: (rows) => rows.map(r => ({...r, _hit: r.drink==='coffee'})),
+    solution: `SELECT name\nFROM customers\nWHERE drink = 'coffee';`
+  },
+  {
+    id: 2,
+    title: "Warehouse — Count apples",
+    subtitle: "How many apples are in stock? Use COUNT with a filter.",
+    story: "You're managing crates. Count apples only.",
+    palette: [
+      {label:"SELECT", kind:"keyword"},
+      {label:"COUNT(*)", kind:"agg", icon:"🧮"},
+      {label:"FROM", kind:"keyword"},
+      {label:"fruits", kind:"table", icon:"🍎"},
+      {label:"WHERE", kind:"keyword"},
+      {label:"type = 'apple'", kind:"condition", icon:"🍎"}
+    ],
+    dataset: {
+      table: 'fruits',
+      rows: [
+        {type:'apple'},{type:'banana'},{type:'apple'},{type:'grape'},{type:'apple'},{type:'banana'}
+      ]
+    },
+    validator: (sql) => /SELECT\s+COUNT\*\s+FROM\s+fruits\s+WHERE\s+type\s*=\s*'apple'\s*;?$/i.test(sql.trim()),
+    effect: (rows) => [{count: rows.filter(r=>r.type==='apple').length, _hit:true}],
+    solution: `SELECT COUNT(*)\nFROM fruits\nWHERE type = 'apple';`
+  },
+  {
+    id: 3,
+    title: "Airport — Who is ready to board? (JOIN)",
+    subtitle: "Match passengers with their tickets.",
+    story: "Link people to tickets to find gate numbers.",
+    palette: [
+      {label:"SELECT", kind:"keyword"},
+      {label:"p.name, t.gate", kind:"column", icon:"🛫"},
+      {label:"FROM", kind:"keyword"},
+      {label:"passengers p", kind:"table", icon:"🧍"},
+      {label:"JOIN", kind:"keyword"},
+      {label:"tickets t", kind:"table", icon:"🎫"},
+      {label:"ON", kind:"keyword"},
+      {label:"p.ticket_id = t.id", kind:"condition", icon:"🔗"},
+    ],
+    dataset: {
+      left: [
+        {id:1, name:'Neha', ticket_id: 101},
+        {id:2, name:'Vikram', ticket_id: 102},
+        {id:3, name:'Lila', ticket_id: 0},
+      ],
+      right: [
+        {id:101, gate:'A4'},
+        {id:102, gate:'B2'},
+      ]
+    },
+    validator: (sql) => /SELECT\s+p\.name,\s*t\.gate\s+FROM\s+passengers\s+p\s+JOIN\s+tickets\s+t\s+ON\s+p\.ticket_id\s*=\s*t\.id\s*;?$/i.test(sql.trim()),
+    effect: (rows, ds) => {
+      // inner join passengers with tickets
+      const out = [];
+      for(const p of ds.left){
+        const t = ds.right.find(x=>x.id===p.ticket_id);
+        if(t){ out.push({_hit:true, name:p.name, gate:t.gate}); }
+      }
+      return out;
+    },
+    solution: `SELECT p.name, t.gate\nFROM passengers p JOIN tickets t\nON p.ticket_id = t.id;`
+  },
+  {
+    id: 4,
+    title: "City Planner — Houses per street (GROUP BY)",
+    subtitle: "Count houses in each street.",
+    story: "Group houses and count them.",
+    palette: [
+      {label:"SELECT", kind:"keyword"},
+      {label:"street, COUNT(*)", kind:"column", icon:"🧭"},
+      {label:"FROM", kind:"keyword"},
+      {label:"houses", kind:"table", icon:"🏠"},
+      {label:"GROUP BY", kind:"keyword"},
+      {label:"street", kind:"column", icon:"🛣️"},
+    ],
+    dataset: {
+      table:'houses',
+      rows:[
+        {street:'Maple'}, {street:'Oak'}, {street:'Maple'}, {street:'Pine'}, {street:'Oak'}
+      ]
+    },
+    validator: (sql) => /SELECT\s+street,\s*COUNT\*\s+FROM\s+houses\s+GROUP\s+BY\s+street\s*;?$/i.test(sql.trim()),
+    effect: (rows) => {
+      const map = new Map();
+      for(const r of rows){ map.set(r.street,(map.get(r.street)||0)+1); }
+      return [...map.entries()].map(([street,count])=>({street,count,_hit:true}));
+    },
+    solution: `SELECT street, COUNT(*)\nFROM houses\nGROUP BY street;`
+  },
+  {
+    id: 5,
+    title: "Detective — Red & bag (AND)",
+    subtitle: "Find suspects wearing red AND carrying a bag.",
+    story: "Use multiple conditions.",
+    palette: [
+      {label:"SELECT", kind:"keyword"},
+      {label:"name", kind:"column", icon:"👤"},
+      {label:"FROM", kind:"keyword"},
+      {label:"suspects", kind:"table", icon:"🕵️"},
+      {label:"WHERE", kind:"keyword"},
+      {label:"color = 'red'", kind:"condition", icon:"🟥"},
+      {label:"AND", kind:"keyword"},
+      {label:"has_bag = true", kind:"condition", icon:"👜"},
+    ],
+    dataset: {
+      table:'suspects',
+      rows:[
+        {name:'Rhea', color:'red', has_bag:true},
+        {name:'Dev', color:'blue', has_bag:true},
+        {name:'Kabir', color:'red', has_bag:false},
+        {name:'Anya', color:'green', has_bag:true}
+      ]
+    },
+    validator: (sql) => /SELECT\s+name\s+FROM\s+suspects\s+WHERE\s+color\s*=\s*'red'\s+AND\s+has_bag\s*=\s*true\s*;?$/i.test(sql.trim()),
+    effect: (rows) => rows.map(r=>({...r,_hit:r.color==='red' && r.has_bag===true})),
+    solution: `SELECT name\nFROM suspects\nWHERE color = 'red' AND has_bag = true;`
+  }
+];
+
+/***** State *****/
+let state = {
+  levelIndex: 0,
+  chosen: [],
+  xp: 0
+};
+
+/***** Helpers *****/
+const el = sel => document.querySelector(sel);
+function toast(msg){ const t = el('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1400); }
+function updateProgress(){
+  const bar = el('#progressBar');
+  const pct = ((state.levelIndex) / (levels.length)) * 100;
+  bar.style.width = pct + '%';
+  el('#levelPill').textContent = `Level ${state.levelIndex+1}/${levels.length}`;
+  el('#xpPill').textContent = `XP ${state.xp}`;
+}
+
+function sqlFromChosen(){
+  if(state.chosen.length===0) return '—';
+  let s = state.chosen.map(b=>b.label).join(' ');
+  if(!/;\s*$/.test(s)) s += ';';
+  return s;
+}
+
+/***** Rendering *****/
+function renderLevel(){
+  const L = levels[state.levelIndex];
+  el('#sceneTitle').textContent = L.title;
+  el('#sceneSubtitle').textContent = L.subtitle;
+  el('#story').textContent = L.story;
+
+  // Palette
+  const pal = el('#palette'); pal.innerHTML='';
+  L.palette.forEach((b,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'block';
+    btn.dataset.kind = b.kind === 'keyword' ? 'keyword' : 'token';
+    btn.innerHTML = `${b.icon?`<span style="margin-right:6px">${b.icon}</span>`:''}<strong>${b.label.split(' ')[0]}</strong>${b.label.includes(' ')?` <span class="pill" style="margin-left:6px">${b.label.split(' ').slice(1).join(' ')}</span>`:''}`;
+    btn.title = b.label;
+    btn.addEventListener('click',()=>{ state.chosen.push(b); renderBuilder(); });
+    pal.appendChild(btn);
+  });
+
+  // Scene cards
+  const scene = el('#scene'); scene.innerHTML='';
+  if(L.id===3){
+    // Airport — show passengers and tickets columns
+    const leftWrap = document.createElement('div'); leftWrap.style.gridColumn='1 / -1';
+    leftWrap.innerHTML = `<div class="sub">Passengers</div>`;
+    scene.appendChild(leftWrap);
+    L.dataset.left.forEach(p=>{
+      const c = card(`${p.name}`, [tag('ticket_id', p.ticket_id||'—')]);
+      scene.appendChild(c);
+    });
+    const br = document.createElement('div'); br.style.gridColumn='1 / -1'; br.innerHTML = `<div class="sub">Tickets</div>`; scene.appendChild(br);
+    L.dataset.right.forEach(t=>{
+      const c = card(`Ticket ${t.id}`, [tag('gate', t.gate)]);
+      scene.appendChild(c);
+    });
+  } else if(L.id===4){
+    L.dataset.rows.forEach((h,i)=>{
+      const c = card(`House ${i+1}`, [tag('street', h.street)]);
+      scene.appendChild(c);
+    });
+  } else {
+    // Generic table of rows
+    const rows = L.dataset.rows || [];
+    rows.forEach((r)=>{
+      const title = r.name ? r.name : (r.type ? r.type : 'Item');
+      const tags = Object.keys(r).filter(k=>!k.startsWith('_') && k!=='name').map(k=>tag(k, r[k]));
+      const c = card(title, tags);
+      scene.appendChild(c);
+    });
+  }
+
+  // Reset builder
+  state.chosen = [];
+  renderBuilder();
+  updateProgress();
+}
+
+function tag(k,v){
+  const span = document.createElement('span');
+  span.className='tag';
+  span.innerHTML = `<strong style="color:#cbd5e1">${k}</strong> ${String(v)}`;
+  return span;
+}
+
+function card(title, tags=[]){
+  const c = document.createElement('div'); c.className = 'card';
+  c.innerHTML = `<h3>${title}</h3>`;
+  const row = document.createElement('div'); row.style.display='flex'; row.style.flexWrap='wrap'; row.style.gap='6px';
+  tags.forEach(t=>row.appendChild(t));
+  c.appendChild(row);
+  return c;
+}
+
+function renderBuilder(){
+  const chosen = el('#chosen'); chosen.innerHTML='';
+  state.chosen.forEach((b,idx)=>{
+    const span = document.createElement('span');
+    span.className='block small';
+    span.textContent = b.label;
+    span.title = 'Click to remove';
+    span.addEventListener('click',()=>{ state.chosen.splice(idx,1); renderBuilder(); });
+    chosen.appendChild(span);
+  });
+  el('#sqlBox').textContent = sqlFromChosen();
+  el('#feedback').textContent = ' ';
+
+  // remove any glow
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('glow'));
+}
+
+/***** Validation & Effects *****/
+function runQuery(){
+  const L = levels[state.levelIndex];
+  const sql = sqlFromChosen();
+  const ok = L.validator(sql);
+
+  if(!ok){
+    el('#feedback').textContent = 'Not quite — check the block order/values';
+    el('#feedback').style.color = '#fca5a5';
+    toast('Try rearranging or adding missing blocks');
+    return;
+  }
+
+  // Apply effect to highlight hits or synthesize output
+  const cards = Array.from(document.querySelectorAll('.card'));
+  if(L.id===3){
+    const out = L.effect(null, L.dataset);
+    // Show simple output in SQL box as pretty table-like text
+    const text = out.map(o=>`${o.name} → Gate ${o.gate}`).join('\n');
+    el('#sqlBox').textContent = sql + '\n\nResult:\n' + (text||'(no rows)');
+    // Highlight passenger cards that have tickets
+    const ready = new Set(out.map(o=>o.name));
+    cards.forEach(c=>{ if(ready.has(c.querySelector('h3').textContent)) c.classList.add('glow'); });
+  } else if(L.id===4){
+    const out = L.effect(L.dataset.rows);
+    const text = out.map(o=>`${o.street}: ${o.count}`).join('\n');
+    el('#sqlBox').textContent = sql + '\n\nResult:\n' + text;
+    // Highlight all cards since grouped
+    cards.forEach(c=>c.classList.add('glow'));
+  } else {
+    const effected = L.effect(L.dataset.rows);
+    const hits = effected.filter(r=>r._hit);
+    const names = hits.map(r=>r.name||r.type||'Item').join(', ');
+    el('#sqlBox').textContent = sql + (names?`\n\nResult:\n${names}`:'\n\n(no rows)');
+    // glow matching cards by title
+    const want = new Set(hits.map(r=>r.name||r.type||'Item'));
+    cards.forEach(c=>{ if(want.has(c.querySelector('h3').textContent)) c.classList.add('glow'); });
+  }
+
+  // Rewards & progress
+  state.xp += 20;
+  toast('✅ Correct! +20 XP');
+  el('#feedback').textContent = 'Great! Correct query.';
+  el('#feedback').style.color = '#86efac';
+  updateProgress();
+}
+
+/***** Events *****/
+
+el('#runBtn').addEventListener('click', runQuery);
+
+el('#resetBtn').addEventListener('click', ()=>{ state.chosen=[]; renderBuilder(); });
+
+el('#nextBtn').addEventListener('click', ()=>{
+  state.levelIndex = Math.min(levels.length-1, state.levelIndex+1);
+  renderLevel();
+});
+
+el('#prevBtn').addEventListener('click', ()=>{
+  state.levelIndex = Math.max(0, state.levelIndex-1);
+  renderLevel();
+});
+
+/***** Init *****/
+renderLevel();
+</script></body>
+</html>
