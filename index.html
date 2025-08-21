@@ -1,213 +1,747 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SQL Quest</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: #f9fafb;
-      color: #111;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
-    }
-    header {
-      width: 100%;
-      padding: 1rem;
-      text-align: center;
-      background: #2563eb;
-      color: #fff;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-    #game {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 1rem;
-      width: 100%;
-      max-width: 600px;
-    }
-    .scene {
-      margin: 1rem 0;
-      padding: 1rem;
-      background: #fff;
-      border-radius: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      width: 100%;
-      min-height: 200px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1.25rem;
-    }
-    .customer, .item, .traveler, .city {
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.75rem;
-      background: #f3f4f6;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .customer.glow, .item.glow, .traveler.glow, .city.glow {
-      background: #bbf7d0;
-      font-weight: bold;
-    }
-    .blocks {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-    .block {
-      padding: 0.5rem 1rem;
-      border-radius: 9999px;
-      background: #e5e7eb;
-      cursor: grab;
-      font-weight: 600;
-      transition: background 0.2s;
-    }
-    .block:hover { background: #d1d5db; }
-    #query {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      background: #1e293b;
-      color: #f8fafc;
-      font-family: monospace;
-      font-size: 0.9rem;
-      border-radius: 0.5rem;
-      white-space: pre-wrap;
-      width: 100%;
-      overflow-x: auto;
-    }
-    #nextBtn {
-      margin-top: 1rem;
-      padding: 0.75rem 1.25rem;
-      font-size: 1rem;
-      border: none;
-      border-radius: 0.75rem;
-      background: #16a34a;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      display: none;
-    }
-    #nextBtn:active { transform: scale(0.98); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Adventure Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .game-container {
+            max-width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .xp-indicator {
+            background: linear-gradient(45deg, #10b981, #059669);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        /* Level Selection */
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+            flex-grow: 1;
+        }
+        
+        .level-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .level-item:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+        }
+        
+        .level-item.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .level-item.locked:hover {
+            transform: none;
+        }
+        
+        .level-emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .level-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: white;
+        }
+        
+        .level-concept {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Game Screen */
+        .game-screen {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+        
+        .story-section {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .story-emoji {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .story-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .story-description {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.4;
+        }
+        
+        .items-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        
+        .story-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .story-item.highlighted {
+            background: linear-gradient(45deg, #10b981, #059669);
+            transform: scale(1.05);
+            border-color: #10b981;
+        }
+        
+        .query-builder {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .query-display {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #10b981;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        
+        .sql-chip {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .sql-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .sql-chip.selected {
+            background: linear-gradient(45deg, #10b981, #059669);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+        
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            color: #1f2937;
+            max-width: 300px;
+            width: 90%;
+        }
+        
+        .result-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .result-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .result-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .result-xp {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .result-explanation {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #6b7280;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .level-grid {
+                padding: 12px;
+                gap: 10px;
+            }
+            
+            .level-item {
+                padding: 16px;
+            }
+            
+            .level-emoji {
+                font-size: 28px;
+            }
+            
+            .story-section {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .story-emoji {
+                font-size: 40px;
+            }
+            
+            .query-builder {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .chips-container {
+                gap: 6px;
+            }
+            
+            .sql-chip {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>SQL Quest</header>
-  <div id="game">
-    <div id="levelTitle"></div>
-    <div class="scene" id="scene"></div>
-    <div class="blocks" id="blocks"></div>
-    <div id="query"></div>
-    <button id="nextBtn">Next Level →</button>
-  </div>  <script>
-    const levels = [
-      {
-        title: "Level 1: Show everyone (SELECT *)",
-        scene: ["Alice", "Bob", "Charlie"],
-        answer: "SELECT * FROM customers;",
-        highlight: () => [0,1,2],
-        blocks: ["SELECT *", "FROM customers"]
-      },
-      {
-        title: "Level 2: Find coffee drinkers (WHERE)",
-        scene: ["☕ Alice", "🍵 Bob", "☕ Charlie"],
-        answer: "SELECT name FROM customers WHERE drink = 'coffee';",
-        highlight: (scene) => scene.map((c,i)=>c.includes("☕")?i:null).filter(i=>i!==null),
-        blocks: ["SELECT name", "FROM customers", "WHERE drink = coffee"]
-      },
-      {
-        title: "Level 3: Count all items (COUNT)",
-        scene: ["📦 Box", "📦 Box", "📦 Box", "📦 Box"],
-        answer: "SELECT COUNT(*) FROM warehouse;",
-        highlight: (scene) => [0,1,2,3],
-        blocks: ["SELECT COUNT(*)", "FROM warehouse"]
-      },
-      {
-        title: "Level 4: Group travelers by flight (GROUP BY)",
-        scene: ["✈️ Flight A - Sam", "✈️ Flight B - Rita", "✈️ Flight A - Tom"],
-        answer: "SELECT flight, COUNT(*) FROM travelers GROUP BY flight;",
-        highlight: () => [0,1,2],
-        blocks: ["SELECT flight, COUNT(*)", "FROM travelers", "GROUP BY flight"]
-      },
-      {
-        title: "Level 5: Join passports with travelers (JOIN)",
-        scene: ["Traveler Sam", "Traveler Rita", "Passport Sam", "Passport Rita"],
-        answer: "SELECT * FROM travelers JOIN passports ON travelers.name = passports.name;",
-        highlight: () => [0,1,2,3],
-        blocks: ["SELECT *", "FROM travelers", "JOIN passports", "ON travelers.name = passports.name"]
-      },
-      {
-        title: "Level 6: Advanced - Filter by city population (WHERE + ORDER BY)",
-        scene: ["🏙️ NY - 8M", "🏙️ LA - 4M", "🏙️ SF - 1M"],
-        answer: "SELECT city FROM cities WHERE population > 2000000 ORDER BY population DESC;",
-        highlight: (scene) => [0,1],
-        blocks: ["SELECT city", "FROM cities", "WHERE population > 2000000", "ORDER BY population DESC"]
-      }
-    ];
+    <div class="game-container" id="gameContainer">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1 style="font-size: 18px; font-weight: 600; color: white; margin: 0;">🎮 SQL Adventure</h1>
+            </div>
+            <div class="xp-indicator">
+                ⭐ <span id="currentXP">0</span> XP
+            </div>
+        </div>
 
-    let currentLevel = 0;
+        <!-- Level Selection Screen -->
+        <div id="levelSelect" class="level-grid fade-in">
+            <!-- Levels will be populated by JavaScript -->
+        </div>
 
-    function renderLevel() {
-      const level = levels[currentLevel];
-      document.getElementById("levelTitle").innerText = level.title;
-      const sceneDiv = document.getElementById("scene");
-      sceneDiv.innerHTML = "";
-      level.scene.forEach((s,i)=>{
-        const div = document.createElement("div");
-        div.className = "customer";
-        div.textContent = s;
-        sceneDiv.appendChild(div);
-      });
-      const blocksDiv = document.getElementById("blocks");
-      blocksDiv.innerHTML = "";
-      level.blocks.forEach(b=>{
-        const div = document.createElement("div");
-        div.className = "block";
-        div.textContent = b;
-        div.onclick = ()=>{
-          document.getElementById("query").textContent += (document.getElementById("query").textContent?"\n":"") + b;
-          checkAnswer();
-        };
-        blocksDiv.appendChild(div);
-      });
-      document.getElementById("query").textContent = "";
-      document.getElementById("nextBtn").style.display = "none";
-    }
+        <!-- Game Screen -->
+        <div id="gameScreen" class="game-screen hidden">
+            <button class="back-btn" id="backBtn">←</button>
+            
+            <!-- Story Section -->
+            <div class="story-section fade-in">
+                <div class="story-emoji" id="storyEmoji">🍕</div>
+                <div class="story-title" id="storyTitle">School Canteen</div>
+                <div class="story-description" id="storyDescription">You want to see all the food items available on the counter.</div>
+                <div class="items-display" id="itemsDisplay">
+                    <!-- Items will be populated by JavaScript -->
+                </div>
+            </div>
 
-    function checkAnswer() {
-      const level = levels[currentLevel];
-      const query = document.getElementById("query").textContent.replace(/\n/g," ").trim();
-      if(query === level.answer.replace(/\n/g," ").trim()){
-        const sceneDiv = document.getElementById("scene");
-        const children = Array.from(sceneDiv.children);
-        (typeof level.highlight === "function" ? level.highlight(level.scene): level.highlight).forEach(i=>{
-          children[i].classList.add("glow");
-        });
-        document.getElementById("nextBtn").style.display = "block";
-      }
-    }
+            <!-- Query Builder -->
+            <div class="query-builder fade-in">
+                <div class="query-display" id="queryDisplay">
+                    Tap the words below to build your SQL query
+                </div>
+                <div class="chips-container" id="chipsContainer">
+                    <!-- Chips will be populated by JavaScript -->
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="clearBtn">🗑️ Clear</button>
+                    <button class="btn btn-primary" id="runBtn">▶️ Run Query</button>
+                </div>
+            </div>
+        </div>
 
-    document.getElementById("nextBtn").onclick = ()=>{
-      currentLevel++;
-      if(currentLevel < levels.length){
-        renderLevel();
-      } else {
-        document.getElementById("game").innerHTML = "<h2>🎉 You finished all levels! 🎉</h2>";
-      }
-    };
+        <!-- Result Popup -->
+        <div class="overlay" id="overlay"></div>
+        <div class="result-popup" id="resultPopup">
+            <div class="result-icon" id="resultIcon">✅</div>
+            <div class="result-title" id="resultTitle">Awesome!</div>
+            <div class="result-xp" id="resultXP">+50 XP</div>
+            <div class="result-explanation" id="resultExplanation">SELECT means "show me" the data I want to see.</div>
+            <button class="btn btn-primary" id="continueBtn" style="margin-top: 16px;">Continue</button>
+        </div>
+    </div>
 
-    renderLevel();
-  </script></body>
+    <script>
+        class SQLAdventure {
+            constructor() {
+                this.currentLevel = 1;
+                this.xp = 0;
+                this.selectedChips = [];
+                
+                this.levels = {
+                    1: {
+                        emoji: '🍕',
+                        title: 'School Canteen',
+                        description: 'You want to see all the food items available on the counter.',
+                        items: ['🍕 Pizza', '🍔 Burger', '🥤 Soda', '🍎 Apple', '🥪 Sandwich', '🍰 Cake'],
+                        chips: ['SELECT', 'food'],
+                        correctAnswer: 'SELECT food',
+                        explanation: 'SELECT means "show me" the data I want to see.',
+                        xpReward: 50,
+                        unlockXP: 0
+                    },
+                    2: {
+                        emoji: '🎬',
+                        title: 'Movie Theater',
+                        description: 'You want to see the titles of movies playing today.',
+                        items: ['🦸 Superhero', '👻 Horror', '💝 Romance', '🤖 Sci-Fi', '😂 Comedy', '🏃 Action'],
+                        chips: ['SELECT', 'title', 'FROM', 'movies'],
+                        correctAnswer: 'SELECT title FROM movies',
+                        explanation: 'FROM tells us which table to look for the data.',
+                        xpReward: 60,
+                        unlockXP: 50
+                    },
+                    3: {
+                        emoji: '🚌',
+                        title: 'School Bus',
+                        description: 'Find only the kids who live on Pine Street.',
+                        items: ['👦 Alex (Pine St)', '👧 Sarah (Oak St)', '👦 Mike (Pine St)', '👧 Emma (Elm St)', '👦 Jake (Pine St)', '👧 Lucy (Oak St)'],
+                        chips: ['SELECT', 'name', 'FROM', 'kids', 'WHERE', "street='Pine'"],
+                        correctAnswer: "SELECT name FROM kids WHERE street='Pine'",
+                        explanation: 'WHERE filters data to show only what matches our condition.',
+                        xpReward: 70,
+                        unlockXP: 110
+                    },
+                    4: {
+                        emoji: '📚',
+                        title: 'Library',
+                        description: 'Arrange books by page count, from smallest to largest.',
+                        items: ['📘 Math (150p)', '📗 Science (200p)', '📙 History (100p)', '📕 English (180p)', '📔 Art (120p)'],
+                        chips: ['SELECT', 'title', 'FROM', 'books', 'ORDER BY', 'pages', 'ASC'],
+                        correctAnswer: 'SELECT title FROM books ORDER BY pages ASC',
+                        explanation: 'ORDER BY sorts data. ASC means ascending (smallest to largest).',
+                        xpReward: 80,
+                        unlockXP: 180
+                    },
+                    5: {
+                        emoji: '🎂',
+                        title: 'Birthday Party',
+                        description: 'Count how many gifts you received at your birthday party.',
+                        items: ['🎁 Gift 1', '🎁 Gift 2', '🎁 Gift 3', '🎁 Gift 4', '🎁 Gift 5'],
+                        chips: ['SELECT', 'COUNT(*)', 'FROM', 'gifts'],
+                        correctAnswer: 'SELECT COUNT(*) FROM gifts',
+                        explanation: 'COUNT(*) counts the number of rows in a table.',
+                        xpReward: 90,
+                        unlockXP: 260
+                    },
+                    6: {
+                        emoji: '🎊',
+                        title: 'Party Planning',
+                        description: 'Count gifts from each friend separately.',
+                        items: ['🎁 Alice: 2', '🎁 Bob: 1', '🎁 Carol: 3', '🎁 Dave: 1'],
+                        chips: ['SELECT', 'friend,', 'COUNT(*)', 'FROM', 'gifts', 'GROUP BY', 'friend'],
+                        correctAnswer: 'SELECT friend, COUNT(*) FROM gifts GROUP BY friend',
+                        explanation: 'GROUP BY groups similar data together for counting.',
+                        xpReward: 100,
+                        unlockXP: 350
+                    }
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.renderLevelSelect();
+                this.bindEvents();
+                this.updateXPDisplay();
+            }
+            
+            bindEvents() {
+                document.getElementById('backBtn').addEventListener('click', () => this.showLevelSelect());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearQuery());
+                document.getElementById('runBtn').addEventListener('click', () => this.runQuery());
+                document.getElementById('continueBtn').addEventListener('click', () => this.closeResultPopup());
+                document.getElementById('overlay').addEventListener('click', () => this.closeResultPopup());
+            }
+            
+            renderLevelSelect() {
+                const container = document.getElementById('levelSelect');
+                container.innerHTML = '';
+                
+                Object.keys(this.levels).forEach(levelNum => {
+                    const level = this.levels[levelNum];
+                    const isLocked = this.xp < level.unlockXP;
+                    
+                    const levelEl = document.createElement('div');
+                    levelEl.className = `level-item ${isLocked ? 'locked' : ''}`;
+                    levelEl.innerHTML = `
+                        <div class="level-emoji">${level.emoji}</div>
+                        <div class="level-title">Level ${levelNum}</div>
+                        <div class="level-concept">${level.chips[level.chips.length > 2 ? 1 : 0]}</div>
+                    `;
+                    
+                    if (!isLocked) {
+                        levelEl.addEventListener('click', () => this.startLevel(parseInt(levelNum)));
+                    }
+                    
+                    container.appendChild(levelEl);
+                });
+            }
+            
+            startLevel(levelNum) {
+                this.currentLevel = levelNum;
+                const level = this.levels[levelNum];
+                
+                document.getElementById('levelSelect').classList.add('hidden');
+                document.getElementById('gameScreen').classList.remove('hidden');
+                
+                // Update story section
+                document.getElementById('storyEmoji').textContent = level.emoji;
+                document.getElementById('storyTitle').textContent = level.title;
+                document.getElementById('storyDescription').textContent = level.description;
+                
+                // Render items
+                const itemsContainer = document.getElementById('itemsDisplay');
+                itemsContainer.innerHTML = '';
+                level.items.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'story-item';
+                    itemEl.textContent = item;
+                    itemsContainer.appendChild(itemEl);
+                });
+                
+                // Render chips
+                this.renderChips(level.chips);
+                
+                // Reset state
+                this.selectedChips = [];
+                this.updateQueryDisplay();
+            }
+            
+            renderChips(chips) {
+                const container = document.getElementById('chipsContainer');
+                container.innerHTML = '';
+                
+                chips.forEach(chip => {
+                    const chipEl = document.createElement('button');
+                    chipEl.className = 'sql-chip';
+                    chipEl.textContent = chip;
+                    chipEl.addEventListener('click', () => this.toggleChip(chip, chipEl));
+                    container.appendChild(chipEl);
+                });
+            }
+            
+            toggleChip(chip, element) {
+                if (element.classList.contains('selected')) {
+                    element.classList.remove('selected');
+                    this.selectedChips = this.selectedChips.filter(c => c !== chip);
+                } else {
+                    element.classList.add('selected');
+                    this.selectedChips.push(chip);
+                }
+                this.updateQueryDisplay();
+            }
+            
+            updateQueryDisplay() {
+                const display = document.getElementById('queryDisplay');
+                if (this.selectedChips.length === 0) {
+                    display.textContent = 'Tap the words below to build your SQL query';
+                    display.style.color = 'rgba(255, 255, 255, 0.6)';
+                } else {
+                    display.textContent = this.selectedChips.join(' ');
+                    display.style.color = '#10b981';
+                }
+            }
+            
+            clearQuery() {
+                this.selectedChips = [];
+                this.updateQueryDisplay();
+                document.querySelectorAll('.sql-chip').forEach(chip => {
+                    chip.classList.remove('selected');
+                });
+            }
+            
+            runQuery() {
+                if (this.selectedChips.length === 0) return;
+                
+                const level = this.levels[this.currentLevel];
+                const userQuery = this.selectedChips.join(' ');
+                const isCorrect = userQuery === level.correctAnswer;
+                
+                this.highlightItems(isCorrect, level);
+                
+                setTimeout(() => {
+                    this.showResult(isCorrect, level);
+                    
+                    if (isCorrect) {
+                        this.xp += level.xpReward;
+                        this.updateXPDisplay();
+                        this.renderLevelSelect();
+                    } else {
+                        this.xp = Math.max(0, this.xp - 10);
+                        this.updateXPDisplay();
+                    }
+                }, 500);
+            }
+            
+            highlightItems(isCorrect, level) {
+                const items = document.querySelectorAll('.story-item');
+                
+                if (isCorrect) {
+                    const query = this.selectedChips.join(' ').toLowerCase();
+                    
+                    if (query.includes('pine')) {
+                        // Highlight Pine Street kids
+                        items.forEach(item => {
+                            if (item.textContent.includes('Pine St')) {
+                                item.classList.add('highlighted');
+                            }
+                        });
+                    } else if (query.includes('order by')) {
+                        // Highlight books in order
+                        const sortedOrder = [2, 4, 0, 3, 1]; // History, Art, Math, English, Science
+                        sortedOrder.forEach((index, delay) => {
+                            setTimeout(() => {
+                                items[index].classList.add('highlighted');
+                            }, delay * 200);
+                        });
+                    } else {
+                        // Highlight all items
+                        items.forEach((item, index) => {
+                            setTimeout(() => {
+                                item.classList.add('highlighted');
+                            }, index * 100);
+                        });
+                    }
+                }
+            }
+            
+            showResult(isCorrect, level) {
+                const popup = document.getElementById('resultPopup');
+                const overlay = document.getElementById('overlay');
+                
+                if (isCorrect) {
+                    document.getElementById('resultIcon').textContent = '🎉';
+                    document.getElementById('resultTitle').textContent = 'Excellent!';
+                    document.getElementById('resultTitle').style.color = '#10b981';
+                    document.getElementById('resultXP').textContent = `+${level.xpReward} XP`;
+                    document.getElementById('resultXP').style.color = '#10b981';
+                } else {
+                    document.getElementById('resultIcon').textContent = '🤔';
+                    document.getElementById('resultTitle').textContent = 'Try Again!';
+                    document.getElementById('resultTitle').style.color = '#ef4444';
+                    document.getElementById('resultXP').textContent = '-10 XP';
+                    document.getElementById('resultXP').style.color = '#ef4444';
+                }
+                
+                document.getElementById('resultExplanation').textContent = level.explanation;
+                
+                overlay.classList.add('show');
+                popup.classList.add('show');
+            }
+            
+            closeResultPopup() {
+                document.getElementById('overlay').classList.remove('show');
+                document.getElementById('resultPopup').classList.remove('show');
+                
+                // Clear highlights
+                document.querySelectorAll('.story-item').forEach(item => {
+                    item.classList.remove('highlighted');
+                });
+            }
+            
+            showLevelSelect() {
+                document.getElementById('gameScreen').classList.add('hidden');
+                document.getElementById('levelSelect').classList.remove('hidden');
+            }
+            
+            updateXPDisplay() {
+                document.getElementById('currentXP').textContent = this.xp;
+            }
+        }
+        
+        // Start the game
+        new SQLAdventure();
+    </script>
+</body>
 </html>
